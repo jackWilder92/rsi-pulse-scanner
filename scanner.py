@@ -38,8 +38,9 @@ def run_scanner():
     # 2. INCREASED LOOKBACK: '2mo' provides ~300 hourly candles for perfect RSI convergence.
     print("Downloading all market data in bulk from Yahoo Finance...")
     try:
+       # Changed period from '2mo' to '1mo' to speed up the network request
         market_data = yf.download(
-            fo_tickers, period="2mo", interval="1h", progress=False
+            fo_tickers, period="1mo", interval="1h", progress=False
         )
     except Exception as e:
         print(f"Critical error downloading data block: {e}")
