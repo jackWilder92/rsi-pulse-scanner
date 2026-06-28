@@ -1,5 +1,8 @@
 {
-    "last_updated": "2026-06-28 10:15 PM",
+    "last_updated": "2026-06-28 10:53 PM",
     "bullish_signals": [],
-    "bearish_signals": []
+    "bearish_signals": [
+        "NSE:TATAELXSI",
+        "NSE:ADANIPORTS"
+    ]
 }
