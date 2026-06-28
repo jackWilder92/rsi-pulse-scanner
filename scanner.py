@@ -5,80 +5,92 @@ import yfinance as yf
 
 
 def get_live_fo_tickers():
-    """Fetches the live, up-to-date F&O stock list directly from Nifty Indices / NSE."""
-    print("Fetching live F&O stock list from NSE source...")
+    """Fetches the live up-to-date F&O stock list from Nifty Indices."""
+    print("Fetching live F&O stock list...")
     try:
-        # Official Nifty Indices CSV URL for all F&O securities
         url = "https://niftyindices.com/Securities_in_FnO.csv"
-
-        # Read the online CSV file directly into pandas
         df = pd.read_csv(url)
-
-        # The column containing the tickers is named 'Symbol'
         raw_tickers = df["Symbol"].dropna().tolist()
-
-        # Format tickers for Yahoo Finance by appending '.NS'
-        yf_tickers = [f"{ticker.strip()}.NS" for ticker in raw_tickers]
-
-        print(f"Successfully loaded {len(yf_tickers)} live F&O stocks.")
-        return yf_tickers
-
+        return [f"{ticker.strip()}.NS" for ticker in raw_tickers]
     except Exception as e:
-        # Fallback list just in case the external website goes down or blocks the request
-        print(f"⚠️ Error fetching live list: {e}. Using emergency backup list.")
+        print(f"⚠️ Error fetching live list: {e}. Using emergency backup.")
         return [
             "RELIANCE.NS",
             "TCS.NS",
             "INFY.NS",
             "HDFCBANK.NS",
             "ICICIBANK.NS",
-            "SBIN.NS",
+            "KOTAKBANK.NS",
+            "TATAELXSI.NS",
+            "ADANIPORTS.NS",
+            "GLENMARK.NS",
         ]
-
-
-def calculate_rsi(df, period=14):
-    """Calculates smoothed RSI matching standard TradingView/Wilder's logic."""
-    delta = df["Close"].diff()
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-
-    avg_gain = gain.ewm(com=period - 1, adjust=False).mean()
-    avg_loss = loss.ewm(com=period - 1, adjust=False).mean()
-
-    rs = avg_gain / avg_loss
-    return 100 - (100 / (1 + rs))
 
 
 def run_scanner():
     crossed_above_60 = []
     crossed_below_40 = []
 
-    # DYNAMIC FETCH: Pulls all ~180+ stocks automatically
+    # Get the ~180+ tickers
     fo_tickers = get_live_fo_tickers()
 
-    for ticker in fo_tickers:
-        try:
-            df = yf.download(ticker, period="5d", interval="1h", progress=False)
+    # 1. BULK DOWNLOAD: 1 request instead of 180 loops.
+    # 2. INCREASED LOOKBACK: '2mo' provides ~300 hourly candles for perfect RSI convergence.
+    print("Downloading all market data in bulk from Yahoo Finance...")
+    try:
+        market_data = yf.download(
+            fo_tickers, period="2mo", interval="1h", progress=False
+        )
+    except Exception as e:
+        print(f"Critical error downloading data block: {e}")
+        return
 
-            if len(df) < 15:
+    # Extract the Closing prices matrix
+    close_df = market_data["Close"]
+
+    print("Processing mathematical indicators...")
+    for ticker in fo_tickers:
+        if ticker not in close_df.columns:
+            continue
+
+        try:
+            # Drop any missing rows to get a clean chronological hourly line
+            series = close_df[ticker].dropna()
+
+            # Ensure we have enough deep historical data to calculate true RSI
+            if len(series) < 50:
                 continue
 
-            df["RSI"] = calculate_rsi(df)
+            # Calculate Wilder's Smoothed RSI
+            delta = series.diff()
+            gain = delta.where(delta > 0, 0)
+            loss = -delta.where(delta < 0, 0)
 
-            rsi_prev = float(df["RSI"].iloc[-2])
-            rsi_curr = float(df["RSI"].iloc[-1])
+            # Using standard 14 period exponential smoothing
+            avg_gain = gain.ewm(com=13, adjust=False).mean()
+            avg_loss = loss.ewm(com=13, adjust=False).mean()
+
+            rs = avg_gain / avg_loss
+            rsi_series = 100 - (100 / (1 + rs))
+
+            # Grab the last two complete hourly elements
+            rsi_prev = float(rsi_series.iloc[-2])
+            rsi_curr = float(rsi_series.iloc[-1])
 
             clean_ticker = ticker.replace(".NS", "")
             tv_format = f"NSE:{clean_ticker}"
 
+            # Strategy Crossover Validations
             if rsi_prev <= 60 and rsi_curr > 60:
                 crossed_above_60.append(tv_format)
             elif rsi_prev >= 40 and rsi_curr < 40:
                 crossed_below_40.append(tv_format)
 
-        except Exception as e:
-            print(f"Skipping {ticker} due to error: {str(e)}")
+        except Exception as ticker_error:
+            # Prevents a single stock data error from breaking the whole run
+            continue
 
+    # Create timestamp formatted for India
     india_time = pd.Timestamp.now(tz="Asia/Kolkata").strftime(
         "%Y-%m-%d %I:%M %p"
     )
@@ -89,10 +101,13 @@ def run_scanner():
         "bearish_signals": crossed_below_40,
     }
 
+    # Save to your structured repository file
     with open("signals.json", "w") as f:
         json.dump(output_data, f, indent=4)
 
-    print("Scan completed successfully.")
+    print(
+        f"Scan complete! Bullish: {len(crossed_above_60)} | Bearish: {len(crossed_below_40)}"
+    )
 
 
 if __name__ == "__main__":
