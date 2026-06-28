@@ -42,7 +42,7 @@ def run_scanner():
             period="1mo",
             interval="1h",
             progress=False,
-            threads=False,  # Prevents CPU hanging on GitHub runners
+            threads=True,  # Prevents CPU hanging on GitHub runners
         )
     except Exception as e:
         print(f"Critical error downloading data block: {e}")
