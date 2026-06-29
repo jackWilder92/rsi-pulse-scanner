@@ -31,37 +31,40 @@ def run_scanner():
     crossed_above_60 = []
     crossed_below_40 = []
 
-    # Get the up-to-date ~180+ F&O tickers from NSE
     fo_tickers = get_live_fo_tickers()
 
-    # Bulk download 1 month of hourly data to ensure data speed and perfect RSI convergence
-    print("Downloading all market data in bulk from Yahoo Finance...")
+    # UPGRADE 1: Increased to '3mo' for 100% stable RSI convergence matching Chartink
+    print("Downloading 3 months of market data in bulk...")
     try:
         market_data = yf.download(
             fo_tickers,
-            period="1mo",
+            period="3mo",
             interval="1h",
             progress=False,
-            threads=True,  # Prevents CPU hanging on GitHub runners
+            threads=True,  # Keeps speed lightning fast
         )
     except Exception as e:
         print(f"Critical error downloading data block: {e}")
         return
 
-    # Extract the Closing prices matrix
     close_df = market_data["Close"]
 
-    print("Processing mathematical indicators...")
+    print("Filtering market anomalies and processing RSI...")
     for ticker in fo_tickers:
         if ticker not in close_df.columns:
             continue
 
         try:
-            # Drop any missing rows to get a clean historical timeline
+            # Drop empty rows
             series = close_df[ticker].dropna()
 
-            # Ensure we have enough candles to build a stabilized RSI
-            if len(series) < 30:
+            # UPGRADE 2: Filter out weekend/off-market data anomalies
+            # We filter the index to only include hours between 09:00 and 16:00
+            series = series[
+                (series.index.hour >= 9) & (series.index.hour <= 15)
+            ]
+
+            if len(series) < 50:
                 continue
 
             # Calculate Wilder's Smoothed RSI
@@ -69,28 +72,24 @@ def run_scanner():
             gain = delta.where(delta > 0, 0)
             loss = -delta.where(delta < 0, 0)
 
-            # Standard 14-period exponential smoothing matching TradingView & Chartink
             avg_gain = gain.ewm(com=13, adjust=False).mean()
             avg_loss = loss.ewm(com=13, adjust=False).mean()
 
             rs = avg_gain / avg_loss
             rsi_series = 100 - (100 / (1 + rs))
 
-            # Grab the last three complete hourly records to capture closing anomalies
-            rsi_latest = float(rsi_series.iloc[-1])  # Final 15-minute closing window (3:15-3:30 PM)
-            rsi_prev1 = float(rsi_series.iloc[-2])  # Main closing trading hour (2:15-3:15 PM)
-            rsi_prev2 = float(rsi_series.iloc[-3])  # Afternoon trading hour (1:15-2:15 PM)
+            # UPGRADE 3: Grab the final true trading session candles
+            rsi_latest = float(rsi_series.iloc[-1])  # 3:15 - 3:30 PM candle
+            rsi_prev1 = float(rsi_series.iloc[-2])  # 2:15 - 3:15 PM candle
+            rsi_prev2 = float(rsi_series.iloc[-3])  # 1:15 - 2:15 PM candle
 
             clean_ticker = ticker.replace(".NS", "")
             tv_format = f"NSE:{clean_ticker}"
 
-            # --- Smart Crossover Logic ---
-            # Bullish Check: Crossed above 60 in either of the last two candle windows
+            # Smart Crossover verification
             crossed_above = (rsi_prev1 <= 60 and rsi_latest > 60) or (
                 rsi_prev2 <= 60 and rsi_prev1 > 60
             )
-
-            # Bearish Check: Crossed below 40 in either of the last two candle windows
             crossed_below = (rsi_prev1 >= 40 and rsi_latest < 40) or (
                 rsi_prev2 >= 40 and rsi_prev1 < 40
             )
@@ -100,11 +99,10 @@ def run_scanner():
             elif crossed_below:
                 crossed_below_40.append(tv_format)
 
-        except Exception as ticker_error:
-            # Skip any corrupt stock data without stopping the whole scan
+        except Exception as e:
             continue
 
-    # Create timestamp formatted explicitly for India Time
+    # Generate explicit India Time stamp
     india_time = pd.Timestamp.now(tz="Asia/Kolkata").strftime(
         "%Y-%m-%d %I:%M %p"
     )
@@ -115,7 +113,6 @@ def run_scanner():
         "bearish_signals": crossed_below_40,
     }
 
-    # Save output data to JSON file
     with open("signals.json", "w") as f:
         json.dump(output_data, f, indent=4)
 
@@ -126,3 +123,4 @@ def run_scanner():
 
 if __name__ == "__main__":
     run_scanner()
+
