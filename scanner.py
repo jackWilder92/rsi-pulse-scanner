@@ -13,7 +13,7 @@ def get_live_fo_tickers():
         raw_tickers = df["Symbol"].dropna().tolist()
         return [f"{ticker.strip()}.NS" for ticker in raw_tickers]
     except Exception as e:
-        print(f"⚠️ Error fetching live list: {e}. Using emergency backup.")
+        print(f"⚠️ Error fetching live list: {e}. Using backup.")
         return [
             "RELIANCE.NS",
             "TCS.NS",
@@ -27,82 +27,96 @@ def get_live_fo_tickers():
         ]
 
 
+def calculate_rsi(series, period=14):
+    """Calculates Wilder's Smoothed RSI matching standard chart setups."""
+    delta = series.diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+
+    avg_gain = gain.ewm(com=period - 1, adjust=False).mean()
+    avg_loss = loss.ewm(com=period - 1, adjust=False).mean()
+
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
+
+
 def run_scanner():
     crossed_above_60 = []
     crossed_below_40 = []
 
     fo_tickers = get_live_fo_tickers()
 
-    # UPGRADE 1: Increased to '3mo' for 100% stable RSI convergence matching Chartink
-    print("Downloading 3 months of market data in bulk...")
-    try:
-        market_data = yf.download(
-            fo_tickers,
-            period="3mo",
-            interval="1h",
-            progress=False,
-            threads=True,  # Keeps speed lightning fast
-        )
-    except Exception as e:
-        print(f"Critical error downloading data block: {e}")
-        return
+    # CHUNKING ENGINE: Divide 180+ stocks into micro-batches of 30 to prevent network choking
+    chunk_size = 30
+    ticker_chunks = [
+        fo_tickers[i : i + chunk_size]
+        for i in range(0, len(fo_tickers), chunk_size)
+    ]
 
-    close_df = market_data["Close"]
+    print(
+        f"Separated markets into {len(ticker_chunks)} secure verification streams..."
+    )
 
-    print("Filtering market anomalies and processing RSI...")
-    for ticker in fo_tickers:
-        if ticker not in close_df.columns:
-            continue
-
+    for idx, chunk in enumerate(ticker_chunks):
+        print(f"Processing batch {idx+1}/{len(ticker_chunks)}...")
         try:
-            # Drop empty rows
-            series = close_df[ticker].dropna()
-
-            # UPGRADE 2: Filter out weekend/off-market data anomalies
-            # We filter the index to only include hours between 09:00 and 16:00
-            series = series[
-                (series.index.hour >= 9) & (series.index.hour <= 15)
-            ]
-
-            if len(series) < 50:
-                continue
-
-            # Calculate Wilder's Smoothed RSI
-            delta = series.diff()
-            gain = delta.where(delta > 0, 0)
-            loss = -delta.where(delta < 0, 0)
-
-            avg_gain = gain.ewm(com=13, adjust=False).mean()
-            avg_loss = loss.ewm(com=13, adjust=False).mean()
-
-            rs = avg_gain / avg_loss
-            rsi_series = 100 - (100 / (1 + rs))
-
-            # UPGRADE 3: Grab the final true trading session candles
-            rsi_latest = float(rsi_series.iloc[-1])  # 3:15 - 3:30 PM candle
-            rsi_prev1 = float(rsi_series.iloc[-2])  # 2:15 - 3:15 PM candle
-            rsi_prev2 = float(rsi_series.iloc[-3])  # 1:15 - 2:15 PM candle
-
-            clean_ticker = ticker.replace(".NS", "")
-            tv_format = f"NSE:{clean_ticker}"
-
-            # Smart Crossover verification
-            crossed_above = (rsi_prev1 <= 60 and rsi_latest > 60) or (
-                rsi_prev2 <= 60 and rsi_prev1 > 60
-            )
-            crossed_below = (rsi_prev1 >= 40 and rsi_latest < 40) or (
-                rsi_prev2 >= 40 and rsi_prev1 < 40
+            # Enforce a strict 15-second timeout limit per batch
+            data = yf.download(
+                tickers=chunk,
+                period="3mo",
+                interval="1h",
+                group_by="ticker",  # Groups data by Ticker first for stable processing
+                progress=False,
+                threads=True,
+                timeout=15,  # ◄── Kills the block if Yahoo stalls
             )
 
-            if crossed_above:
-                crossed_above_60.append(tv_format)
-            elif crossed_below:
-                crossed_below_40.append(tv_format)
+            for ticker in chunk:
+                try:
+                    # Safe check if the ticker structure successfully downloaded
+                    if ticker not in data.columns.levels[0]:
+                        continue
 
-        except Exception as e:
+                    df_ticker = data[ticker].dropna()
+
+                    # Restrict data to regular NSE market session hours
+                    df_ticker = df_ticker[
+                        (df_ticker.index.hour >= 9) & (df_ticker.index.hour <= 15)
+                    ]
+
+                    if len(df_ticker) < 30:
+                        continue
+
+                    # Process indicators
+                    rsi_series = calculate_rsi(df_ticker["Close"])
+
+                    rsi_latest = float(rsi_series.iloc[-1])
+                    rsi_prev1 = float(rsi_series.iloc[-2])
+                    rsi_prev2 = float(rsi_series.iloc[-3])
+
+                    clean_ticker = ticker.replace(".NS", "")
+                    tv_format = f"NSE:{clean_ticker}"
+
+                    crossed_above = (rsi_prev1 <= 60 and rsi_latest > 60) or (
+                        rsi_prev2 <= 60 and rsi_prev1 > 60
+                    )
+                    crossed_below = (rsi_prev1 >= 40 and rsi_latest < 40) or (
+                        rsi_prev2 >= 40 and rsi_prev1 < 40
+                    )
+
+                    if crossed_above:
+                        crossed_above_60.append(tv_format)
+                    elif crossed_below:
+                        crossed_below_40.append(tv_format)
+
+                except Exception:
+                    continue  # Skip any corrupt single rows safely
+
+        except Exception as batch_error:
+            print(f"⚠️ Batch {idx+1} timed out or failed. Skipping to next chunk.")
             continue
 
-    # Generate explicit India Time stamp
+    # Format the updated execution timestamp
     india_time = pd.Timestamp.now(tz="Asia/Kolkata").strftime(
         "%Y-%m-%d %I:%M %p"
     )
@@ -117,10 +131,11 @@ def run_scanner():
         json.dump(output_data, f, indent=4)
 
     print(
-        f"Scan complete! Bullish: {len(crossed_above_60)} | Bearish: {len(crossed_below_40)}"
+        f"Scan successful! Bullish: {len(crossed_above_60)} | Bearish: {len(crossed_below_40)}"
     )
 
 
 if __name__ == "__main__":
     run_scanner()
+
 
