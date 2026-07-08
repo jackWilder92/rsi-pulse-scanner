@@ -1,7 +1,9 @@
 {
-    "last_updated": "2026-07-07 06:06 PM",
-    "bullish_signals": [
-        "NSE:GLENMARK"
-    ],
-    "bearish_signals": []
+    "last_updated": "2026-07-08 12:49 PM",
+    "bullish_signals": [],
+    "bearish_signals": [
+        "NSE:ICICIBANK",
+        "NSE:TATAELXSI",
+        "NSE:ADANIPORTS"
+    ]
 }
