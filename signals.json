@@ -1,5 +1,9 @@
 {
-    "last_updated": "2026-07-30 01:39 PM",
-    "bullish_signals": [],
-    "bearish_signals": []
+    "last_updated": "2026-07-30 04:28 PM",
+    "bullish_signals": [
+        "NSE:HDFCBANK"
+    ],
+    "bearish_signals": [
+        "NSE:GLENMARK"
+    ]
 }
