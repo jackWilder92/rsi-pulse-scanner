@@ -1,8 +1,7 @@
 {
-    "last_updated": "2026-08-03 06:20 PM",
-    "bullish_signals": [
-        "NSE:TCS",
-        "NSE:ICICIBANK"
-    ],
-    "bearish_signals": []
+    "last_updated": "2026-08-04 12:56 PM",
+    "bullish_signals": [],
+    "bearish_signals": [
+        "NSE:HDFCBANK"
+    ]
 }
