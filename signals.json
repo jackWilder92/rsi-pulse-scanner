@@ -1,7 +1,9 @@
 {
-    "last_updated": "2026-08-06 01:42 PM",
-    "bullish_signals": [],
+    "last_updated": "2026-08-07 02:15 PM",
+    "bullish_signals": [
+        "NSE:GLENMARK"
+    ],
     "bearish_signals": [
-        "NSE:TCS"
+        "NSE:ICICIBANK"
     ]
 }
