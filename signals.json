@@ -1,8 +1,9 @@
 {
-    "last_updated": "2026-08-07 04:34 PM",
+    "last_updated": "2026-08-10 11:36 AM",
     "bullish_signals": [
-        "NSE:TCS",
-        "NSE:GLENMARK"
+        "NSE:RELIANCE"
     ],
-    "bearish_signals": []
+    "bearish_signals": [
+        "NSE:ADANIPORTS"
+    ]
 }
