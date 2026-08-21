@@ -1,6 +1,8 @@
 {
-    "last_updated": "2026-08-21 02:55 PM",
-    "bullish_signals": [],
+    "last_updated": "2026-08-21 03:49 PM",
+    "bullish_signals": [
+        "NSE:ADANIPORTS"
+    ],
     "bearish_signals": [
         "NSE:INFY"
     ]
