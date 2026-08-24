@@ -1,7 +1,9 @@
 {
-    "last_updated": "2026-08-24 03:05 PM",
-    "bullish_signals": [],
+    "last_updated": "2026-08-24 03:57 PM",
+    "bullish_signals": [
+        "NSE:KOTAKBANK"
+    ],
     "bearish_signals": [
-        "NSE:RELIANCE"
+        "NSE:ADANIPORTS"
     ]
 }
