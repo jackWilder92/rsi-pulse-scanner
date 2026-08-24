@@ -1,9 +1,9 @@
 {
-    "last_updated": "2026-08-21 03:49 PM",
+    "last_updated": "2026-08-24 10:59 AM",
     "bullish_signals": [
-        "NSE:ADANIPORTS"
+        "NSE:ICICIBANK",
+        "NSE:TATAELXSI",
+        "NSE:GLENMARK"
     ],
-    "bearish_signals": [
-        "NSE:INFY"
-    ]
+    "bearish_signals": []
 }
