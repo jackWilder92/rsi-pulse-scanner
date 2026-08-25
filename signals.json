@@ -1,7 +1,9 @@
 {
-    "last_updated": "2026-08-25 03:49 PM",
+    "last_updated": "2026-08-25 04:14 PM",
     "bullish_signals": [
-        "NSE:INFY"
+        "NSE:INFY",
+        "NSE:ICICIBANK",
+        "NSE:ADANIPORTS"
     ],
     "bearish_signals": []
 }
