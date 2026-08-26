@@ -1,5 +1,8 @@
 {
-    "last_updated": "2026-08-26 01:59 PM",
+    "last_updated": "2026-08-26 03:54 PM",
     "bullish_signals": [],
-    "bearish_signals": []
+    "bearish_signals": [
+        "NSE:RELIANCE",
+        "NSE:TCS"
+    ]
 }
