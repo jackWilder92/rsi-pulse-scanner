@@ -1,10 +1,8 @@
 {
-    "last_updated": "2026-08-31 05:26 PM",
-    "bullish_signals": [
-        "NSE:TCS",
-        "NSE:KOTAKBANK"
-    ],
+    "last_updated": "2026-09-01 03:10 PM",
+    "bullish_signals": [],
     "bearish_signals": [
-        "NSE:RELIANCE"
+        "NSE:HDFCBANK",
+        "NSE:ADANIPORTS"
     ]
 }
