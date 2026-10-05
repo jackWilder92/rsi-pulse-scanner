@@ -1,7 +1,9 @@
 {
-    "last_updated": "2026-10-02 04:18 PM",
+    "last_updated": "2026-10-05 06:17 PM",
     "bullish_signals": [
-        "NSE:INFY"
+        "NSE:ICICIBANK"
     ],
-    "bearish_signals": []
+    "bearish_signals": [
+        "NSE:HDFCBANK"
+    ]
 }
