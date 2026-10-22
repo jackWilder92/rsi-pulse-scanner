@@ -1,7 +1,10 @@
 {
-    "last_updated": "2026-10-22 03:12 PM",
-    "bullish_signals": [],
+    "last_updated": "2026-10-22 04:15 PM",
+    "bullish_signals": [
+        "NSE:ICICIBANK"
+    ],
     "bearish_signals": [
-        "NSE:RELIANCE"
+        "NSE:RELIANCE",
+        "NSE:GLENMARK"
     ]
 }
