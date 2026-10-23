@@ -1,6 +1,8 @@
 {
-    "last_updated": "2026-10-23 03:09 PM",
-    "bullish_signals": [],
+    "last_updated": "2026-10-23 04:08 PM",
+    "bullish_signals": [
+        "NSE:TCS"
+    ],
     "bearish_signals": [
         "NSE:HDFCBANK",
         "NSE:TATAELXSI"
