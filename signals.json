@@ -1,7 +1,9 @@
 {
-    "last_updated": "2026-11-20 12:42 AM",
+    "last_updated": "2026-11-20 07:22 PM",
     "bullish_signals": [
-        "NSE:ICICIBANK"
+        "NSE:RELIANCE"
     ],
-    "bearish_signals": []
+    "bearish_signals": [
+        "NSE:INFY"
+    ]
 }
